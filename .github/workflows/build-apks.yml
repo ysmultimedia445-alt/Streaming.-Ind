@@ -1,0 +1,45 @@
+name: Build STREAMIN ID APK
+
+on:
+workflow_dispatch:
+push:
+paths:
+- 'STREAMING-ID-Android-Project.zip'
+- '.github/workflows/build-apk.yml'
+
+permissions:
+contents: read
+
+jobs:
+build:
+runs-on: ubuntu-latest
+
+steps:
+  - name: Download project
+    uses: actions/checkout@v4
+
+  - name: Prepare project
+    run: |
+      sudo apt-get update
+      sudo apt-get install -y unzip
+      mkdir -p project
+      unzip -o STREAMING-ID-Android-Project.zip -d project
+      find project -name gradlew -type f
+
+  - name: Build debug APK
+    run: |
+      GRADLEW=$(find "$GITHUB_WORKSPACE/project" -name gradlew -type f | head -n 1)
+      if [ -z "$GRADLEW" ]; then
+        echo "File gradlew tidak ditemukan. Periksa isi ZIP proyek Android."
+        exit 1
+      fi
+      cd "$(dirname "$GRADLEW")"
+      chmod +x gradlew
+      ./gradlew assembleDebug
+
+  - name: Save APK
+    uses: actions/upload-artifact@v4
+    with:
+      name: STREAMIN-ID-APK
+      path: project/**/build/outputs/apk/debug/*.apk
+      if-no-files-found: error
